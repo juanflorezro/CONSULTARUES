@@ -79,6 +79,23 @@ app.post('/consulta', async (req, res) => {
   }
 });
 
+
+app.get('/detalles/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const apiUrl = `https://ruesapi.rues.org.co/WEB2/api/Expediente/DetalleRM/${id}`;
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`Error al consultar API RUES: ${response.status}`);
+    }
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error en /detalles/:id:', error.message);
+    res.status(500).json({ error: 'No se pudo obtener el detalle del registro.' });
+  }
+})
 app.listen(PORT, () => {
   console.log(`✅ Servidor backend corriendo en http://localhost:${PORT}`);
 });

@@ -18,8 +18,7 @@
             background: #ffffff;
         }
 
-        h1,
-        h2 {
+        h1 {
             color: #1a237e;
             text-align: center;
         }
@@ -87,6 +86,15 @@
             margin-top: 10px;
             text-align: center;
         }
+
+        #verDetallesBtn {
+            display: none;
+            margin-top: 15px;
+        }
+
+        #detalle {
+            display: none;
+        }
     </style>
 </head>
 
@@ -102,12 +110,23 @@
 
     <div id="resultado" class="info">Esperando consulta...</div>
 
+    <button id="verDetallesBtn" onclick="verDetalles()">Ver detalles</button>
+    <div id="detalle" class="card"></div>
+
     <script>
+        let id_rm_global = null;
+
         const form = document.getElementById('consultaForm');
         const resultado = document.getElementById('resultado');
+        const detalleDiv = document.getElementById('detalle');
+        const verDetallesBtn = document.getElementById('verDetallesBtn');
 
         form.addEventListener('submit', async e => {
             e.preventDefault();
+            detalleDiv.style.display = 'none';
+            verDetallesBtn.style.display = 'none';
+            id_rm_global = null;
+
             const nit = document.getElementById('nit').value.trim();
 
             if (!nit) {
@@ -132,28 +151,58 @@
                 }
 
                 const r = data.registros[0];
+                id_rm_global = r.id_rm;
 
                 resultado.innerHTML = `
-          <div class="card">
-            <div class="field"><span>NIT:</span> ${r.nit} - ${r.dv}</div>
-            <div class="field"><span>Razón Social:</span> ${r.razon_social}</div>
-            <div class="field"><span>Tipo Documento:</span> ${r.tipo_documento}</div>
-            <div class="field"><span>Organización Jurídica:</span> ${r.organizacion_juridica}</div>
-            <div class="field"><span>Estado Matrícula:</span> ${r.estado_matricula}</div>
-            <div class="field"><span>Último Año Renovado:</span> ${r.ultimo_ano_renovado}</div>
-            <div class="field"><span>Categoría:</span> ${r.categoria}</div>
-            <div class="field"><span>Cámara de Comercio:</span> ${r.nom_camara} (Código: ${r.cod_camara})</div>
-            <div class="field"><span>Matrícula:</span> ${r.matricula}</div>
-          </div>
-          <div class="info">Consulta realizada el ${data.fecha_respuesta} a las ${data.hora_respuesta}</div>
-        `;
+                    <div class="card">
+                        <div class="field"><span>NIT:</span> ${r.nit} - ${r.dv}</div>
+                        <div class="field"><span>Razón Social:</span> ${r.razon_social}</div>
+                        <div class="field"><span>Tipo Documento:</span> ${r.tipo_documento}</div>
+                        <div class="field"><span>Organización Jurídica:</span> ${r.organizacion_juridica}</div>
+                        <div class="field"><span>Estado Matrícula:</span> ${r.estado_matricula}</div>
+                        <div class="field"><span>Último Año Renovado:</span> ${r.ultimo_ano_renovado}</div>
+                        <div class="field"><span>Categoría:</span> ${r.categoria}</div>
+                        <div class="field"><span>Cámara de Comercio:</span> ${r.nom_camara} (Código: ${r.cod_camara})</div>
+                        <div class="field"><span>Matrícula:</span> ${r.matricula}</div>
+                    </div>
+                    <div class="info">Consulta realizada el ${data.fecha_respuesta} a las ${data.hora_respuesta}</div>
+                `;
+
+                verDetallesBtn.style.display = 'inline-block';
 
             } catch (error) {
                 resultado.innerHTML = `<p class="error">Error en la consulta: ${error.message}</p>`;
             }
         });
-    </script>
 
+        async function verDetalles() {
+            if (!id_rm_global) return;
+
+            detalleDiv.innerHTML = 'Cargando detalles...';
+            detalleDiv.style.display = 'block';
+
+            try {
+                const response = await fetch(`/detalles/${id_rm_global}`);
+                const data = await response.json();
+                const r = data.registros;
+
+                detalleDiv.innerHTML = `
+                    <div class="field"><span>CIIU Principal:</span> ${r.cod_ciiu_act_econ_pri} - ${r.desc_ciiu_act_econ_pri}</div>
+                    <div class="field"><span>CIIU Secundario:</span> ${r.cod_ciiu_act_econ_sec} - ${r.desc_ciiu_act_econ_sec}</div>
+                    <div class="field"><span>Fecha Matrícula:</span> ${formatearFecha(r.fecha_matricula)}</div>
+                    <div class="field"><span>Fecha Renovación:</span> ${formatearFecha(r.fecha_renovacion)}</div>
+                    <div class="field"><span>Fecha Actualización:</span> ${formatearFecha(r.fecha_actualizacion)}</div>
+                `;
+            } catch (error) {
+                detalleDiv.innerHTML = `<p class="error">Error al cargar detalles: ${error.message}</p>`;
+            }
+        }
+
+        function formatearFecha(f) {
+            if (!f || f.length !== 8) return f;
+            return `${f.slice(6)}/${f.slice(4,6)}/${f.slice(0,4)}`;
+        }
+    </script>
 </body>
 
 </html>
