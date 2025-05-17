@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Consulta RUES con Excel</title>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      color: #333;
+      max-width: 80%;
+      margin: 40px auto;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      background: #ffffff;
+    }
+
+    p {
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1a237e;
+      margin-bottom: 1rem;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin: 20px auto;
+      padding: 10px;
+      border: 2px dashed #90a4ae;
+      background-color: #eceff1;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    input[type="file"]:hover {
+      background-color: #cfd8dc;
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      color: #1a237e;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    th,
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #e0e0e0;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: #1a237e;
+      color: white;
+      text-transform: uppercase;
+      font-size: 13px;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f5f5f5;
+    }
+
+    tr:hover {
+      background-color: #e3f2fd;
+    }
+
+    td[colspan="5"] {
+      color: red;
+      font-weight: bold;
+    }
+
+    code {
+      background-color: #eceff1;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #263238;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Consulta RUES con Excel EQUIPO TROPA </h1>
+  <p>Sube un archivo Excel (.xlsx) con columnas <code>id</code> y <code>tel</code></p>
+  <input type="file" id="input-excel" accept=".xlsx,.xls" />
+
+  <div id="loading">Consultando API, por favor espera...</div>
+  <div id="counter" style="margin-top: 10px; font-weight: bold; color: #1a237e;"></div>
+
+
+  <table id="result-table" style="display:none;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Razon Social</th>
+        <th>Último Año Renovado</th>
+        <th>Fecha Última Renovación</th>
+        <th>Estado</th>
+        <th>Tel</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const inputExcel = document.getElementById('input-excel');
+    const resultTable = document.getElementById('result-table');
+    const tbody = resultTable.querySelector('tbody');
+    const loading = document.getElementById('loading');
+
+    inputExcel.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      loading.style.display = 'block';
+      tbody.innerHTML = '';
+      resultTable.style.display = 'none';
+
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      let count = 0;
+      const total = jsonData.length;
+      document.getElementById('counter').textContent = `0 / ${total} consultados...`;
+
+
+      for (const row of jsonData) {
+        const id = row.id || row.ID || row.Id || '';
+        const telExcel = row.tel || row.Tel || row.TELEFONO || '';
+
+        count++;
+        document.getElementById('counter').textContent = `${count} / ${total} consultados...`;
+
+        if (!id) continue;
+
+        try {
+          const res = await fetch(`/api/detalle/${encodeURIComponent(id)}`);
+          if (!res.ok) throw new Error('Error en la API');
+          const data = await res.json();
+
+          if (data && data.registros) {
+            const r = data.registros;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+          <td>${r.numero_identificacion || id}</td>
+          <td>${r.razon_social || ''}</td>
+          <td>${r.ultimo_ano_renovado || ''}</td>
+          <td>${r.fecha_renovacion || ''}</td>
+          <td>${r.estado || ''}</td>
+          <td>${telExcel || ''}</td>
+        `;
+            tbody.appendChild(tr);
+          } else {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+          <td>${id}</td>
+          <td colspan="5" style="color:red;">No se encontró info</td>
+        `;
+            tbody.appendChild(tr);
+          }
+        } catch (err) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+        <td>${id}</td>
+        <td colspan="5" style="color:red;">Error al consultar API</td>
+      `;
+          tbody.appendChild(tr);
+        }
+      }
+
+      loading.style.display = 'none';
+      resultTable.style.display = 'table';
+    });
+  </script>
+
+</body>
+
+</html>
