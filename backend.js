@@ -32,7 +32,7 @@ app.get('/api/detalle/:id', async (req, res) => {
     });
 
     const data1 = await response1.json();
-    console.log(data1.registros[0].id_rm)
+    console.log(data1.registros.length)
 
     if (!data1 || !data1.registros || data1.registros.length === 0) {
       return res.status(404).json({ error: 'NIT no encontrado en RUES' });
@@ -41,7 +41,7 @@ app.get('/api/detalle/:id', async (req, res) => {
     const id_rm = data1.registros[0].id_rm;
 
     // Segunda consulta: obtener detalle con ID de matrícula
-    const response2 = await fetch(`https://ruesapi.rues.org.co/WEB2/api/Expediente/DetalleRM/${data1.registros[0].id_rm}`);
+    const response2 = await fetch(`https://ruesapi.rues.org.co/WEB2/api/Expediente/DetalleRM/${data1.registros[data1.registros.length-1].id_rm}`);
     const data2 = await response2.json();
 
     res.json(data2);
