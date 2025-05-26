@@ -142,6 +142,15 @@
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      function formatearFecha(fechaString) {
+        if (!fechaString || fechaString.length !== 8) return '';
+
+        const anio = fechaString.substring(0, 4);
+        const mes = fechaString.substring(4, 6);
+        const dia = fechaString.substring(6, 8);
+
+        return `${dia}/${mes}/${anio}`;
+      }
 
       let count = 0;
       const total = jsonData.length;
@@ -169,7 +178,7 @@
           <td>${r.numero_identificacion || id}</td>
           <td>${r.razon_social || ''}</td>
           <td>${r.ultimo_ano_renovado || ''}</td>
-          <td>${r.fecha_renovacion || ''}</td>
+          <td>${formatearFecha(r.fecha_renovacion)}</td>
           <td>${r.estado || ''}</td>
           <td>${telExcel || ''}</td>
         `;
